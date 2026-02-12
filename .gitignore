@@ -1,0 +1,6 @@
+# VS Code 설정 폴더 무시 (맨 뒤에 슬래시를 붙이면 폴더 전체를 무시해)
+.vscode/
+
+# 운영체제 임시 파일 무시
+.DS_Store
+Thumbs.db
