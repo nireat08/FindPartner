@@ -1,5 +1,5 @@
 // [보안] 키보드 단축키 방지 (F12, 소스보기, 저장, 인쇄, 개발자도구 등)
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     // F12
     if (e.keyCode === 123) { e.preventDefault(); return false; }
     // Ctrl+Shift+I (개발자 도구), Ctrl+Shift+J (콘솔), Ctrl+Shift+C (요소 검사)
@@ -14,17 +14,17 @@ document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.keyCode === 80) { e.preventDefault(); return false; }
 });
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz6Olo7dxvy60Hvn7th15S6iiYBOfj8TEF7mcZSY7vPUll5-hNWTevdzT4-KXv9g7VA/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz6Olo7dxvy60Hvn7th15S6iiYBOfj8TEF7mcZSY7vPUll5-hNWTevdzT4-KXv9g7VA/exec";
 
 let map;
 let markers = [];
-let ALL_DATA = []; 
+let ALL_DATA = [];
 let currentCategory = 'all';
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     initMap();
     fetchData();
-    
+
     const listEl = document.getElementById('listContent');
     listEl.addEventListener('scroll', () => {
         const btn = document.getElementById('topBtn');
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     window.addEventListener('scroll', () => {
-        if(window.innerWidth <= 900) {
+        if (window.innerWidth <= 900) {
             const btn = document.getElementById('topBtn');
             if (window.scrollY > 300) btn.classList.add('show');
             else btn.classList.remove('show');
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function initMap() {
     const southWest = L.latLng(32.8, 124.5);
-    const northEast = L.latLng(38.65, 132.0); 
+    const northEast = L.latLng(38.65, 132.0);
     const bounds = L.latLngBounds(southWest, northEast);
 
     map = L.map('map', {
@@ -53,7 +53,7 @@ function initMap() {
         maxBounds: bounds,
         maxBoundsViscosity: 1.0
     });
-    
+
     map.attributionControl.setPrefix(false);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -89,10 +89,10 @@ function getStoreLatLng(store) {
 function getMarkerIcon(category, isPremium) {
     if (isPremium) {
         return L.divIcon({
-            className: 'custom-pin premium-pin', 
-            html: `<i class="fa-solid fa-crown"></i>`, 
+            className: 'custom-pin premium-pin',
+            html: `<i class="fa-solid fa-crown"></i>`,
             iconSize: [48, 48],
-            iconAnchor: [24, 48], 
+            iconAnchor: [24, 48],
             popupAnchor: [0, -50]
         });
     }
@@ -100,11 +100,11 @@ function getMarkerIcon(category, isPremium) {
     const colors = {
         '서울': '#2f6286', '경기': '#72bf44', '인천': '#00bcd4', '강원': '#03a9f4',
         '충남': '#ff9800', '충북': '#ffc107', '세종': '#ffeb3b', '대전': '#ff5722',
-        '전남': '#9c27b0', '전북': '#673ab7', '경남': '#f44336', '경북': '#e53935', 
+        '전남': '#9c27b0', '전북': '#673ab7', '경남': '#f44336', '경북': '#e53935',
         '대구': '#d32f2f', '부산': '#c62828', '울산': '#b71c1c', '제주': '#ff5722'
     };
-    const color = colors[category] || '#2f6286'; 
-    
+    const color = colors[category] || '#2f6286';
+
     return L.divIcon({
         className: 'custom-pin',
         html: `<i class="fa-solid fa-location-dot" style="color:${color};"></i>`,
@@ -120,10 +120,10 @@ function fetchData() {
         .then(data => {
             if (data.error) throw new Error(data.error);
             ALL_DATA = data;
-            applyFilter(); 
+            applyFilter();
         })
         .catch(err => {
-            document.getElementById("listContent").innerHTML = 
+            document.getElementById("listContent").innerHTML =
                 '<div class="message-box" style="color:red;">데이터 로드 실패</div>';
         });
 }
@@ -131,7 +131,7 @@ function fetchData() {
 function updateMarkers(stores) {
     markers.forEach(layer => map.removeLayer(layer));
     markers = [];
-    const bounds = []; 
+    const bounds = [];
 
     stores.forEach((store) => {
         const pos = getStoreLatLng(store);
@@ -143,28 +143,25 @@ function updateMarkers(stores) {
 
             const badgeHtml = isPremium ? '<span style="background:#FFD700; color:#fff; padding:2px 5px; border-radius:3px; font-size:10px; margin-right:5px;">PREMIUM</span>' : '';
 
-            // [팝업에 네이버 지도 링크 버튼 추가]
+            // [팝업 내용 생성]
             let popupLinkBtn = '';
             if (store.link && store.link.trim() !== '' && store.link !== '#') {
                 popupLinkBtn = `
-                    <div style="margin-top:8px; text-align:center;">
-                        <a href="${store.link}" target="_blank" style="
-                            display: inline-block; padding: 4px 12px; 
-                            background-color: #03C75A; color: white; 
-                            text-decoration: none; border-radius: 4px; 
-                            font-size: 11px; font-weight: 500;">
-                            네이버지도보기
-                        </a>
-                    </div>
+                    <a href="${store.link}" target="_blank" class="map-popup-btn">
+                        네이버 지도로 보기
+                    </a>
                 `;
             }
 
+            // [전화걸기 링크 적용]
+            const phoneLink = store.phone ? `<a href="tel:${store.phone}" class="map-popup-phone-link">${store.phone}</a>` : '';
+
             const popupContent = `
-                <div style="font-family:'Noto Sans KR'; min-width:160px;">
-                    <h4 style="margin:0 0 5px; color:#2f6286;">
+                <div class="map-popup-inner">
+                    <h4 class="map-popup-title">
                         ${badgeHtml}${store.name}
                     </h4>
-                    <p style="margin:0; font-size:12px; color:#555;">${store.phone || ''}</p>
+                    <p class="map-popup-phone">${phoneLink}</p>
                     ${popupLinkBtn}
                 </div>
             `;
@@ -172,9 +169,9 @@ function updateMarkers(stores) {
 
             marker.on('click', () => {
                 highlightListItem(store.name);
-                showSelectedStore(store.name); 
+                showSelectedStore(store.name);
             });
-            store.markerRef = marker; 
+            store.markerRef = marker;
             markers.push(marker);
             bounds.push([pos.lat, pos.lng]);
         }
@@ -222,7 +219,7 @@ function renderList(data) {
         const card = document.createElement("div");
         card.className = `store-card ${isPremium ? 'premium-card' : ''}`;
         card.dataset.storeName = store.name;
-        
+
         card.onclick = () => {
             const targetPos = getStoreLatLng(store);
 
@@ -235,15 +232,15 @@ function renderList(data) {
             if (map && targetPos) {
                 map.flyTo([targetPos.lat, targetPos.lng], 16, { duration: 1.5 });
                 if (store.markerRef) store.markerRef.openPopup();
-                
+
                 if (window.innerWidth <= 900) {
-                     document.querySelector('.map-panel').scrollIntoView({behavior: 'smooth'});
+                    document.querySelector('.map-panel').scrollIntoView({ behavior: 'smooth' });
                 }
             }
         };
 
-        let locationIcon = isPremium 
-            ? '<i class="fa-solid fa-crown" style="color:#FFD700;"></i>' 
+        let locationIcon = isPremium
+            ? '<i class="fa-solid fa-crown" style="color:#FFD700;"></i>'
             : (pos ? '<i class="fa-solid fa-location-dot" style="color:#e03131;"></i>' : '<i class="fa-solid fa-location-dot"></i>');
 
         card.innerHTML = `
@@ -273,7 +270,7 @@ function renderList(data) {
 
 function updateFilter(checkbox) {
     const label = checkbox.parentElement;
-    if(checkbox.checked) {
+    if (checkbox.checked) {
         label.classList.add('active');
     } else {
         label.classList.remove('active');
@@ -290,7 +287,7 @@ function showSelectedStore(name) {
 function clearSelection() {
     document.getElementById('selectedStoreBar').style.display = 'none';
     document.querySelectorAll('.store-card').forEach(c => c.classList.remove('active-card'));
-    if(map) map.closePopup();
+    if (map) map.closePopup();
     scrollToListTop();
 }
 
@@ -310,7 +307,7 @@ function highlightListItem(storeName) {
 
 function scrollTabs(direction) {
     const container = document.getElementById('categoryTabs');
-    const scrollAmount = 150; 
+    const scrollAmount = 150;
     if (direction === 'left') container.scrollLeft -= scrollAmount;
     else container.scrollLeft += scrollAmount;
 }
@@ -318,7 +315,7 @@ function scrollTabs(direction) {
 function setCategory(cat, el) {
     currentCategory = cat;
     document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-    if(el) {
+    if (el) {
         el.classList.add('active');
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
@@ -326,28 +323,43 @@ function setCategory(cat, el) {
     applyFilter();
 }
 
-function filterData() { applyFilter(); }
+function toggleClearBtn() {
+    const input = document.getElementById("searchInput");
+    const clearBtn = document.getElementById("clearSearchBtn");
+    if (input.value.length > 0) clearBtn.classList.add("show");
+    else clearBtn.classList.remove("show");
+}
+
+function clearSearch() {
+    const input = document.getElementById("searchInput");
+    input.value = "";
+    toggleClearBtn();
+    filterData();
+    input.focus();
+}
+
+function filterData() { toggleClearBtn(); applyFilter(); }
 
 function applyFilter() {
     const keyword = document.getElementById("searchInput").value.toUpperCase().trim();
     const showPremiumOnly = document.getElementById("premiumCheck").checked;
     const showOneCareOnly = document.getElementById("oneCareCheck").checked;
-    const showTestRideOnly = document.getElementById("testRideCheck").checked; 
+    const showTestRideOnly = document.getElementById("testRideCheck").checked;
 
     clearSelection();
 
     // 1. 필터링 수행
     let filtered = ALL_DATA.filter(store => {
         if (currentCategory !== 'all' && store.category !== currentCategory) return false;
-        
+
         if (showPremiumOnly && store.grade !== 'S') return false;
         if (showOneCareOnly && store.oneCare !== 'O') return false;
         if (showTestRideOnly && store.testRide !== 'O') return false;
 
         if (keyword !== "") {
             return (store.name && store.name.toUpperCase().includes(keyword)) ||
-                   (store.address && store.address.toUpperCase().includes(keyword)) ||
-                   (store.branch && store.branch.toUpperCase().includes(keyword)); 
+                (store.address && store.address.toUpperCase().includes(keyword)) ||
+                (store.branch && store.branch.toUpperCase().includes(keyword));
         }
         return true;
     });
@@ -356,7 +368,7 @@ function applyFilter() {
     filtered.sort((a, b) => {
         const isPremiumA = a.grade === 'S';
         const isPremiumB = b.grade === 'S';
-        
+
         if (isPremiumA && !isPremiumB) return -1; // A가 프리미엄이면 앞으로
         if (!isPremiumA && isPremiumB) return 1;  // B가 프리미엄이면 앞으로
         return 0; // 둘 다 같으면 순서 유지
@@ -370,12 +382,12 @@ function applyFilter() {
 function scrollToListTop() {
     const listEl = document.getElementById('listContent');
     listEl.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     if (window.innerWidth <= 900) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'F12' || e.keyCode === 123) return false;
 });
