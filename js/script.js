@@ -17,13 +17,18 @@ document.addEventListener('keydown', function (e) {
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz6Olo7dxvy60Hvn7th15S6iiYBOfj8TEF7mcZSY7vPUll5-hNWTevdzT4-KXv9g7VA/exec";
 
 let map;
-let markers = [];
+let markers = []; // This will now act as a reference if needed, but mainly use cluster
+let markerClusterGroup; // New global for clustering
+let isClusteringEnabled = true; // [신규] 클러스터링 토글 상태
+let userLat = null; // [신규] 사용자 현재 위도
+let userLng = null; // [신규] 사용자 현재 경도
 let ALL_DATA = [];
 let currentCategory = 'all';
 
 document.addEventListener("DOMContentLoaded", function () {
     initMap();
     fetchData();
+    requestInitialLocation(); // [신규] 페이지 진입 시 위치 권한 요청
 
     const listEl = document.getElementById('listContent');
     listEl.addEventListener('scroll', () => {
@@ -42,23 +47,53 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initMap() {
-    const southWest = L.latLng(32.8, 124.5);
-    const northEast = L.latLng(38.65, 132.0);
+    // [변경] 대한민국 영역 제한 (독도 포함, 일본/북한 최소화) - OSM 복구 시에도 유지
+    const southWest = L.latLng(32.9, 124.0);
+    const northEast = L.latLng(38.9, 132.5);
     const bounds = L.latLngBounds(southWest, northEast);
 
     map = L.map('map', {
-        center: [37.5665, 126.9780],
-        zoom: 10,
+        center: [36.5, 127.5],
+        zoom: 7,
         minZoom: 7,
         maxBounds: bounds,
         maxBoundsViscosity: 1.0
     });
 
     map.attributionControl.setPrefix(false);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+
+    // [복구] OpenStreetMap (OSM)
+    // 기본 타일 (Light)
+    window.lightTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
     }).addTo(map);
+
+    // 다크 모드용 타일 (CartoDB Dark Matter)
+    window.darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CartoDB',
+        maxZoom: 19
+    });
+
+    // 마커 클러스터 그룹 초기화
+    markerClusterGroup = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        spiderfyOnMaxZoom: true,
+        removeOutsideVisibleBounds: true,
+        iconCreateFunction: function (cluster) {
+            return L.divIcon({
+                html: '<div><span>' + cluster.getChildCount() + '</span></div>',
+                className: 'marker-cluster-custom',
+                iconSize: L.point(40, 40)
+            });
+        }
+    });
+
+    // 초기 로딩 시 클러스터링 활성화 상태면 추가
+    if (isClusteringEnabled) {
+        map.addLayer(markerClusterGroup);
+    }
 }
 
 function getStoreLatLng(store) {
@@ -87,6 +122,7 @@ function getStoreLatLng(store) {
 }
 
 function getMarkerIcon(category, isPremium) {
+    /* [주석처리] 프리미엄 아이콘 비활성화
     if (isPremium) {
         return L.divIcon({
             className: 'custom-pin premium-pin',
@@ -96,6 +132,7 @@ function getMarkerIcon(category, isPremium) {
             popupAnchor: [0, -50]
         });
     }
+    */
 
     const colors = {
         '서울': '#2f6286', '경기': '#72bf44', '인천': '#00bcd4', '강원': '#03a9f4',
@@ -129,40 +166,76 @@ function fetchData() {
 }
 
 function updateMarkers(stores) {
-    markers.forEach(layer => map.removeLayer(layer));
+    // 기존 마커 및 클러스터 제거
+    markerClusterGroup.clearLayers();
+    // 개별 마커 레이어 제거 (클러스터 미사용 시)
+    markers.forEach(m => map.removeLayer(m));
     markers = [];
+
     const bounds = [];
 
     stores.forEach((store) => {
         const pos = getStoreLatLng(store);
 
         if (pos) {
-            const isPremium = (store.grade === 'S');
+            // [주석처리] 프리미엄 로직 비활성화
+            const isPremium = false;
             const customIcon = getMarkerIcon(store.category, isPremium);
-            const marker = L.marker([pos.lat, pos.lng], { icon: customIcon }).addTo(map);
+            const marker = L.marker([pos.lat, pos.lng], { icon: customIcon });
 
-            const badgeHtml = isPremium ? '<span style="background:#FFD700; color:#fff; padding:2px 5px; border-radius:3px; font-size:10px; margin-right:5px;">PREMIUM</span>' : '';
+            // const badgeHtml = isPremium ? '<span style="background:#FFD700; color:#fff; padding:2px 5px; border-radius:3px; font-size:10px; margin-right:5px;">PREMIUM</span>' : '';
+            const badgeHtml = '';
 
             // [팝업 내용 생성]
+            // [변경] 길찾기 -> 네이버 지도 연동 (내 위치 있으면 출발지 자동 설정)
+            // 네이버 지도 URL 스킴 - 도착지: elat, elng / 출발지: slat, slng
+            let naviUrl = `https://map.naver.com/index.nhn?elat=${pos.lat}&elng=${pos.lng}&etext=${store.name}&menu=route`;
+
+
+
+            // [변경] 기존 '네이버 지도로 보기' (상세페이지) 복원 및 길찾기 버튼 통합
             let popupLinkBtn = '';
+
+            // 네이버 지도로 보기 (상세)
             if (store.link && store.link.trim() !== '' && store.link !== '#') {
-                popupLinkBtn = `
+                popupLinkBtn += `
                     <a href="${store.link}" target="_blank" class="map-popup-btn">
                         네이버 지도로 보기
                     </a>
                 `;
             }
 
-            // [전화걸기 링크 적용]
-            const phoneLink = store.phone ? `<a href="tel:${store.phone}" class="map-popup-phone-link">${store.phone}</a>` : '';
+            // 길찾기 버튼 (네이버) - [변경] 클릭 시점에 동적으로 내 위치 확인하여 연동
+            popupLinkBtn += `
+                <a href="#" onclick="openNaverNavi(${pos.lat}, ${pos.lng}, '${store.name}'); return false;" class="btn-map-link">
+                    <i class="fa-solid fa-location-arrow"></i> 네이버 길찾기
+                </a>
+            `;
+
+            // [상세 정보 HTML 생성]
+            let branchHtml = '';
+            if (store.branch && store.branch.trim() !== '') {
+                branchHtml = `<div class="map-popup-branch">퀄리스포츠 ${store.branch}</div>`;
+            }
+
+            const addressHtml = `<div class="map-popup-row"><i class="fa-solid fa-location-dot"></i> ${store.address}</div>`;
+            const phoneHtml = store.phone ? `<div class="map-popup-row"><i class="fa-solid fa-phone"></i> <a href="tel:${store.phone}">${store.phone}</a></div>` : '';
+            const closedHtml = `<div class="map-popup-row"><i class="fa-regular fa-calendar-xmark"></i> 휴무: ${store.closed || '없음'}</div>`;
 
             const popupContent = `
                 <div class="map-popup-inner">
-                    <h4 class="map-popup-title">
-                        ${badgeHtml}${store.name}
-                    </h4>
-                    <p class="map-popup-phone">${phoneLink}</p>
-                    ${popupLinkBtn}
+                    <div class="map-popup-header">
+                        <h4 class="map-popup-title">${badgeHtml}${store.name}</h4>
+                        ${branchHtml}
+                    </div>
+                    <div class="map-popup-body">
+                        ${addressHtml}
+                        ${phoneHtml}
+                        ${closedHtml}
+                    </div>
+                    <div class="map-popup-buttons">
+                        ${popupLinkBtn}
+                    </div>
                 </div>
             `;
             marker.bindPopup(popupContent);
@@ -170,16 +243,197 @@ function updateMarkers(stores) {
             marker.on('click', () => {
                 highlightListItem(store.name);
                 showSelectedStore(store.name);
+                setActivePin(marker);
+
+                // [신규] 맵 중앙 정렬 (팝업이 잘리지 않도록)
+                map.flyTo([pos.lat, pos.lng], 16, { animate: true, duration: 1 });
             });
+
+            // [신규] 팝업 위치 오프셋 조정 (핀과 여백 두기)
+            marker.bindPopup(popupContent, {
+                offset: [0, -20] // 위로 20px 올림
+            });
+
             store.markerRef = marker;
-            markers.push(marker);
+            markers.push(marker); // Keep reference
+
+            // [신규] 클러스터링 토글 상태에 따라 추가 방식 분기
+            if (isClusteringEnabled) {
+                markerClusterGroup.addLayer(marker);
+            } else {
+                marker.addTo(map);
+            }
+
             bounds.push([pos.lat, pos.lng]);
         }
     });
 
+    // 클러스터링 미사용 시에도 markerClusterGroup Layer는 map에 있어야 할 수 있으나(관리상),
+    // 토글 시 isClusteringEnabled에 따라 clearLayers 혹은 removeLayer 처리를 하는 것이 깔끔.
+    // 여기서는 applyFilter가 전체 재호출되므로, 위쪽 로직으로 충분.
+    if (isClusteringEnabled) {
+        if (!map.hasLayer(markerClusterGroup)) map.addLayer(markerClusterGroup);
+    } else {
+        if (map.hasLayer(markerClusterGroup)) map.removeLayer(markerClusterGroup);
+    }
+
     if (bounds.length > 0) {
         map.fitBounds(bounds, { padding: [50, 50] });
     }
+}
+
+// [신규 기능] 활성화 핀 스타일 적용 (빨간색 강조)
+function setActivePin(marker) {
+    // 모든 마커에서 active-pin 클래스 제거
+    document.querySelectorAll('.custom-pin').forEach(el => {
+        el.classList.remove('active-pin');
+        el.style.zIndex = ""; // z-index 초기화
+    });
+
+    // 현재 마커 아이콘에 클래스 추가
+    if (marker && marker.getElement()) {
+        const iconEl = marker.getElement();
+        iconEl.classList.add('active-pin');
+        iconEl.style.zIndex = 9999;
+    }
+}
+
+// [신규 기능] 초기 위치 권한 요청
+function requestInitialLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLat = position.coords.latitude;
+                userLng = position.coords.longitude;
+                // console.log("Initial location acquired:", userLat, userLng);
+            },
+            (error) => {
+                // console.warn("Location permission denied or error.");
+            }
+        );
+    }
+}
+
+// [신규 기능] 네이버 길찾기 동적 연동
+function openNaverNavi(lat, lng, name) {
+    // 기본 URL (도착지)
+    let url = `https://map.naver.com/index.nhn?elat=${lat}&elng=${lng}&etext=${name}&menu=route`;
+
+    // 현재 시점의 내 위치가 있으면 출발지로 추가
+    // 만약 userLat가 없다면, 다시 한번 시도해볼 수도 있음 (여기서는 저장된 값 사용)
+    if (navigator.geolocation && (!userLat || !userLng)) {
+        // 위치 정보가 없으면, 즉시 요청 후 이동 시도 (약간의 딜레이 발생 가능하므로 바로 이동시키는게 나을수도 있음)
+        // 여기서는 사용자 경험상 바로 띄우는게 낫지만, 권한 체크를 위해 getCurrentPosition을 한 번 더 수행
+        navigator.geolocation.getCurrentPosition((position) => {
+            userLat = position.coords.latitude;
+            userLng = position.coords.longitude;
+            url += `&slat=${userLat}&slng=${userLng}&stext=내위치`;
+            window.open(url, '_blank');
+        }, () => {
+            // 권한 없으면 도착지만
+            window.open(url, '_blank');
+        });
+    } else if (userLat && userLng) {
+        url += `&slat=${userLat}&slng=${userLng}&stext=내위치`;
+        window.open(url, '_blank');
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
+// [신규 기능] 클러스터링 토글
+function toggleClustering() {
+    isClusteringEnabled = !isClusteringEnabled;
+    const btn = document.getElementById('btnCluster'); // ID 변경
+
+    if (isClusteringEnabled) {
+        btn.classList.add('active');
+        applyFilter();
+    } else {
+        btn.classList.remove('active');
+        applyFilter();
+    }
+}
+
+// [신규 기능] 다크 모드 토글
+function toggleDarkMode() {
+    const body = document.body;
+    body.classList.toggle('dark-mode');
+    const isDark = body.classList.contains('dark-mode');
+    const btn = document.getElementById('btnDarkMode'); // ID 변경
+
+    if (isDark) {
+        btn.classList.add('active');
+        if (map && window.darkTile) {
+            map.removeLayer(window.lightTile);
+            window.darkTile.addTo(map);
+        }
+    } else {
+        btn.classList.remove('active');
+        if (map && window.lightTile) {
+            map.removeLayer(window.darkTile);
+            window.lightTile.addTo(map);
+        }
+    }
+}
+
+// [신규 기능] 내 위치 토글 (Toggle)
+function toggleMyLocation() {
+    const btn = document.getElementById('btnMyLocation');
+
+    // 이미 마커가 있다면 -> 끄기 (제거)
+    if (window.myLocationMarker) {
+        map.removeLayer(window.myLocationMarker);
+        window.myLocationMarker = null;
+        btn.classList.remove('active');
+        return;
+    }
+
+    // 없다면 -> 켜기 (찾기)
+    if (!navigator.geolocation) {
+        alert("이 브라우저에서는 위치 서비스를 지원하지 않습니다.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // [업데이트] 전역 변수 동기화
+            userLat = lat;
+            userLng = lng;
+
+            // 지도 이동
+            map.flyTo([lat, lng], 14, { duration: 1.5 });
+
+            // [변경] 커스텀 디자인 마커 (레이더 효과)
+            const myLocIcon = L.divIcon({
+                className: 'my-location-marker',
+                html: '<div class="my-location-pulse"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            // [변경] 커스텀 팝업 적용 (X버튼 숨김, 오토클로즈)
+            window.myLocationMarker = L.marker([lat, lng], { icon: myLocIcon }).addTo(map)
+                .bindPopup('현재 내 위치', {
+                    className: 'custom-location-popup',
+                    minWidth: 50,
+                    closeButton: false, // CSS로도 숨겼지만 명시적으로 false
+                    autoClose: true,    // 다른거 누르면 닫힘
+                    closeOnClick: true
+                })
+                .openPopup();
+
+            // 버튼 활성화
+            btn.classList.add('active');
+        },
+        (error) => {
+            alert("위치 정보를 가져올 수 없습니다. 권한을 확인해주세요.");
+            btn.classList.remove('active');
+        }
+    );
 }
 
 function renderList(data) {
@@ -230,8 +484,20 @@ function renderList(data) {
             showSelectedStore(store.name);
 
             if (map && targetPos) {
-                map.flyTo([targetPos.lat, targetPos.lng], 16, { duration: 1.5 });
-                if (store.markerRef) store.markerRef.openPopup();
+                // map.flyTo -> markerClusterGroup zoom handle
+                // 클러스터 내부 마커일 경우 펼치기
+                if (isClusteringEnabled && markerClusterGroup) {
+                    markerClusterGroup.zoomToShowLayer(store.markerRef, () => {
+                        store.markerRef.openPopup();
+                        setActivePin(store.markerRef);
+                    });
+                } else {
+                    map.flyTo([targetPos.lat, targetPos.lng], 16, { duration: 1.5 });
+                    if (store.markerRef) {
+                        store.markerRef.openPopup();
+                        setActivePin(store.markerRef);
+                    }
+                }
 
                 if (window.innerWidth <= 900) {
                     document.querySelector('.map-panel').scrollIntoView({ behavior: 'smooth' });
@@ -239,9 +505,10 @@ function renderList(data) {
             }
         };
 
-        let locationIcon = isPremium
+        // [주석처리] 프리미엄 아이콘 비활성화
+        let locationIcon = /* isPremium
             ? '<i class="fa-solid fa-crown" style="color:#FFD700;"></i>'
-            : (pos ? '<i class="fa-solid fa-location-dot" style="color:#e03131;"></i>' : '<i class="fa-solid fa-location-dot"></i>');
+            : */ (pos ? '<i class="fa-solid fa-location-dot" style="color:#e03131;"></i>' : '<i class="fa-solid fa-location-dot"></i>');
 
         card.innerHTML = `
             <div class="card-header">
@@ -342,7 +609,9 @@ function filterData() { toggleClearBtn(); applyFilter(); }
 
 function applyFilter() {
     const keyword = document.getElementById("searchInput").value.toUpperCase().trim();
-    const showPremiumOnly = document.getElementById("premiumCheck").checked;
+    // [주석처리] 프리미엄 필터 체크박스 비활성화
+    // const showPremiumOnly = document.getElementById("premiumCheck").checked;
+    const showPremiumOnly = false; // 강제 false 처리
     const showOneCareOnly = document.getElementById("oneCareCheck").checked;
     const showTestRideOnly = document.getElementById("testRideCheck").checked;
 
@@ -364,7 +633,8 @@ function applyFilter() {
         return true;
     });
 
-    // 2. [추가] 정렬 수행 (S등급 최상단, 나머지는 원래 순서 유지)
+    // 2. [주석처리] 정렬 수행 비활성화 (S등급 최상단 기능 끔)
+    /*
     filtered.sort((a, b) => {
         const isPremiumA = a.grade === 'S';
         const isPremiumB = b.grade === 'S';
@@ -373,6 +643,7 @@ function applyFilter() {
         if (!isPremiumA && isPremiumB) return 1;  // B가 프리미엄이면 앞으로
         return 0; // 둘 다 같으면 순서 유지
     });
+    */
 
     renderList(filtered);
     updateMarkers(filtered);

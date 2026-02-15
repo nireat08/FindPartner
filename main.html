@@ -14,6 +14,9 @@
     <!-- [필수] Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
     <!-- 분리된 CSS 연결 -->
     <link rel="stylesheet" href="css/style.css">
@@ -28,6 +31,8 @@
             전국 대리점 안내
         </div>
         <div class="header-info">가까운 공식 대리점을 검색해보세요</div>
+
+
     </header>
 
     <div class="main-container">
@@ -46,13 +51,28 @@
                             class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
 
+                <!-- [신규] 지도 제어 버튼 통합 (핀 묶기, 내 위치, 다크모드) -->
+                <div class="map-controls-row">
+                    <button id="btnCluster" class="control-btn active" onclick="toggleClustering()">
+                        <i class="fa-solid fa-layer-group"></i> 핀 묶어보기
+                    </button>
+                    <button id="btnMyLocation" class="control-btn" onclick="toggleMyLocation()">
+                        <i class="fa-solid fa-location-crosshairs"></i> 내 위치
+                    </button>
+                    <button id="btnDarkMode" class="control-btn" onclick="toggleDarkMode()">
+                        <i class="fa-solid fa-moon"></i> 다크모드
+                    </button>
+                </div>
+
                 <!-- 2단: 필터 버튼 모음 -->
                 <div class="filter-buttons-row">
+                    <!-- [주석처리] 프리미엄 필터 비활성화
                     <label class="filter-btn premium-filter">
                         <input type="checkbox" id="premiumCheck" onchange="updateFilter(this); filterData()">
                         <i class="fa-solid fa-crown"></i>
                         <span>프리미엄</span>
                     </label>
+                    -->
 
                     <label class="filter-btn onecare-filter">
                         <input type="checkbox" id="oneCareCheck" onchange="updateFilter(this); filterData()">
@@ -122,6 +142,8 @@
     <!-- 외부 라이브러리 -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <!-- 분리된 JS 연결 -->
     <script src="js/script.js"></script>

@@ -709,47 +709,139 @@ header {
     text-decoration: underline;
 }
 
+/* [신규] 팝업 상세 스타일 */
+.map-popup-inner {
+    text-align: left;
+    min-width: 220px;
+}
+
+.map-popup-header {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.map-popup-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+    color: #333;
+    line-height: 1.3;
+}
+
+.map-popup-branch {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.map-popup-body {
+    margin-bottom: 12px;
+}
+
+.map-popup-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.map-popup-row i {
+    width: 16px;
+    text-align: center;
+    color: #888;
+    margin-top: 2px;
+}
+
+.map-popup-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.map-popup-row a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.map-popup-row a:hover {
+    text-decoration: underline;
+    color: #2f6286;
+}
+
+/* 지도 보기 버튼 (Secondary) - 회색/라인 스타일 */
 .map-popup-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 8px;
     padding: 10px 0;
     width: 100%;
-    background-color: var(--system-green);
-    color: white;
+    background: #f1f3f5;
+    /* 밝은 회색 */
+    color: #495057;
     text-decoration: none;
-    border-radius: 12px;
+    border-radius: 8px;
+    /* 둥글게 */
     font-size: 14px;
     font-weight: 600;
-    transition: transform 0.2s, opacity 0.2s;
+    transition: all 0.2s;
+    border: 1px solid #e9ecef;
+    margin-bottom: 6px;
 }
 
 .map-popup-btn:hover {
-    opacity: 0.9;
-    transform: scale(1.02);
+    background: #e9ecef;
+    color: #212529;
 }
 
+/* 길찾기 버튼 (Primary) - 네이버 그린 */
 .btn-map-link {
-    display: inline-block;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 4px;
-    margin-bottom: 6px;
-    padding: 6px 12px;
-    background-color: #03C75A;
+    padding: 10px 0;
+    width: 100%;
+    background: #03C75A;
+    /* 네이버 공식 그린 */
     color: white;
     text-decoration: none;
     border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    width: auto;
-    transition: opacity 0.2s;
-    vertical-align: middle;
+    /* 둥글게 */
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(3, 199, 90, 0.2);
+    cursor: pointer;
 }
 
 .btn-map-link:hover {
-    opacity: 0.9;
+    background: #02b351;
+    box-shadow: 0 4px 8px rgba(3, 199, 90, 0.3);
+    transform: translateY(-1px);
+}
+
+/* 다크모드 대응 */
+body.dark-mode .map-popup-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .map-popup-branch {
+    color: #aaa;
+}
+
+body.dark-mode .map-popup-row {
+    color: #ccc;
+}
+
+body.dark-mode .map-popup-row a {
+    color: #ccc;
+}
+
+body.dark-mode .map-popup-header {
+    border-bottom-color: #444;
 }
 
 .message-box {
@@ -835,5 +927,332 @@ header {
         bottom: 24px;
         right: 24px;
         z-index: 999;
+    }
+}
+
+/* [신규] 내 위치 마커 (레이더 효과) */
+.my-location-marker {
+    background: transparent;
+    border: none;
+}
+
+.my-location-pulse {
+    width: 20px;
+    height: 20px;
+    background: #007aff;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+.my-location-pulse::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 122, 255, 0.4);
+    border-radius: 50%;
+    animation: radar-wave 2s infinite;
+    z-index: 1;
+}
+
+@keyframes radar-wave {
+    0% {
+        width: 20px;
+        height: 20px;
+        opacity: 0.8;
+    }
+
+    100% {
+        width: 60px;
+        height: 60px;
+        opacity: 0;
+    }
+}
+
+/* [신규] 선택된 핀 스타일 (빨간색 강조, 커짐) */
+.custom-pin.active-pin i {
+    color: #ff3b30 !important;
+    /* 강제 빨간색 */
+    transform: scale(1.3) translateY(-10px);
+    /* 커지고 살짝 위로 */
+    filter: drop-shadow(0 8px 12px rgba(255, 59, 48, 0.5));
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 9999;
+}
+
+/* [신규] 팝업 꼬리(Tail) 강화 - 시각적 연결 */
+.leaflet-popup-tip {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: -8px auto 0;
+    /* 위로 더 올림 */
+    pointer-events: auto;
+    background: white;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+    transform: rotate(45deg);
+    /* 마름모꼴 유지 */
+}
+
+/* [신규] 내 위치 팝업 커스텀 (텍스트 맞춤, X버튼 수정) */
+.custom-location-popup .leaflet-popup-content-wrapper {
+    background: rgba(47, 98, 134, 0.9);
+    /* 말풍선 배경색 변경 (구분됨) */
+    color: white;
+    padding: 0;
+    border-radius: 4px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.custom-location-popup .leaflet-popup-content {
+    margin: 6px 10px;
+    /* 여백 축소 */
+    line-height: 1.4;
+    min-width: max-content !important;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.custom-location-popup .leaflet-popup-tip {
+    background: rgba(47, 98, 134, 0.9);
+}
+
+/* 내 위치 팝업 X 버튼 숨기기 (요청사항) */
+.custom-location-popup .leaflet-popup-close-button {
+    display: none;
+}
+
+/* [다크 모드] */
+body.dark-mode {
+    --bg-body: #121212;
+    --bg-panel: #1e1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    --bg-input: #333333;
+    --divider: #444444;
+    --system-white: #2c2c2c;
+    --bg-popup: rgba(30, 30, 30, 0.95);
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+body.dark-mode header {
+    background-color: rgba(30, 30, 30, 0.85);
+    color: #e0e0e0;
+    border-bottom: 1px solid var(--divider);
+}
+
+body.dark-mode .brand-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .control-area {
+    background: rgba(30, 30, 30, 0.85);
+}
+
+body.dark-mode .list-panel {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--divider);
+}
+
+body.dark-mode .list-content {
+    background: var(--bg-panel);
+}
+
+body.dark-mode .store-card {
+    background: #2c2c2c;
+    border: 1px solid #444;
+    box-shadow: none;
+}
+
+body.dark-mode .store-card:hover,
+body.dark-mode .store-card.active-card {
+    background: #3a3a3a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .store-card.premium-card {
+    background: linear-gradient(135deg, #2c2c2c, #3a3a3a);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+body.dark-mode .store-name {
+    color: #fff;
+}
+
+body.dark-mode .search-input-row input {
+    color: #fff;
+    background-color: #333;
+}
+
+body.dark-mode .search-input-row input:focus {
+    background-color: #444;
+}
+
+body.dark-mode .filter-btn {
+    background: #333;
+    color: #e0e0e0;
+}
+
+body.dark-mode .filter-btn:hover {
+    background: #444;
+}
+
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background: rgba(30, 30, 30, 0.95);
+    color: #e0e0e0;
+}
+
+body.dark-mode .map-popup-title {
+    color: #fff;
+}
+
+body.dark-mode .map-popup-phone {
+    color: #aaa;
+}
+
+/* 다크 모드 토글 버튼 */
+.dark-mode-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.3s;
+    margin-right: 16px;
+}
+
+.dark-mode-toggle:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* [신규] 지도 제어 버튼 통합 (Pill Style) */
+.map-controls-row {
+    display: flex;
+    gap: 8px;
+    /* 버튼 사이 간격 */
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid var(--divider);
+    overflow-x: auto;
+    /* 화면 작을때 스크롤 */
+    white-space: nowrap;
+    justify-content: flex-start;
+    /* 왼쪽 정렬 */
+}
+
+/* 스크롤바 숨기기 */
+.map-controls-row::-webkit-scrollbar {
+    display: none;
+}
+
+.control-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.control-btn i {
+    font-size: 14px;
+}
+
+.control-btn:hover {
+    background: #f0f0f0;
+}
+
+/* 활성 상태 (ON) */
+.control-btn.active {
+    background: #2f6286;
+    color: white;
+    border-color: #2f6286;
+    box-shadow: 0 2px 4px rgba(47, 98, 134, 0.3);
+}
+
+/* 다크모드 대응 */
+body.dark-mode .map-controls-row {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--divider);
+}
+
+body.dark-mode .control-btn {
+    background: #333;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark-mode .control-btn:hover {
+    background: #444;
+}
+
+body.dark-mode .control-btn.active {
+    background: #2f6286;
+    border-color: #2f6286;
+    color: white;
+}
+
+/* 마커 클러스터 커스텀 스타일 */
+.marker-cluster-custom {
+    background-color: rgba(47, 98, 134, 0.6);
+    border-radius: 50%;
+}
+
+.marker-cluster-custom div {
+    background-color: rgba(47, 98, 134, 0.9);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 5px;
+}
+
+/* 애니메이션 마커 (Pulse) */
+.marker-pulse {
+    animation: pulse-animation 1.5s infinite;
+}
+
+@keyframes pulse-animation {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 rgba(255, 69, 58, 0.7));
+    }
+
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 10px rgba(255, 69, 58, 0));
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 rgba(255, 69, 58, 0));
     }
 }
