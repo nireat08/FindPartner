@@ -203,17 +203,18 @@ function updateMarkers(stores) {
             const customIcon = getMarkerIcon(store.category, isPremium);
             const marker = L.marker([pos.lat, pos.lng], { icon: customIcon });
 
+
             // const badgeHtml = isPremium ? '<span style="background:#FFD700; color:#fff; padding:2px 5px; border-radius:3px; font-size:10px; margin-right:5px;">PREMIUM</span>' : '';
             const badgeHtml = '';
 
-            // [팝업 내용 생성]
-            // [변경] 길찾기 -> 네이버 지도 연동 (내 위치 있으면 출발지 자동 설정)
-            // 네이버 지도 URL 스킴 - 도착지: elat, elng / 출발지: slat, slng
-            let naviUrl = `https://map.naver.com/index.nhn?elat=${pos.lat}&elng=${pos.lng}&etext=${store.name}&menu=route`;
+            // [상세 정보 HTML 생성]
+            let branchHtml = '';
+            if (store.branch && store.branch.trim() !== '') {
+                branchHtml = `<div class="map-popup-branch">퀄리스포츠 ${store.branch}</div>`;
+            }
 
-
-
-            // [변경] 기존 '네이버 지도로 보기' (상세페이지) 복원 및 길찾기 버튼 통합
+            // [변경] 웹사이트(데스크탑)에서 정보를 모두 표시하기 위해 팝업 내용은 항상 전체 정보를 포함하도록 생성
+            // 모바일에서는 노출 시점(focusMarker)에서 팝업이 뜨지 않게 제어하므로, 데이터는 항상 전체를 바인딩해둡니다.
             let popupLinkBtn = '';
 
             // 네이버 지도로 보기 (상세)
@@ -225,22 +226,16 @@ function updateMarkers(stores) {
                 `;
             }
 
-            // 길찾기 버튼 (네이버) - [변경] 클릭 시점에 동적으로 내 위치 확인하여 연동
+            // 길찾기 버튼 (네이버) - 클릭 시점에 동적으로 내 위치 확인하여 연동
             popupLinkBtn += `
                 <a href="#" onclick="openNaverNavi(${pos.lat}, ${pos.lng}, '${store.name}'); return false;" class="btn-map-link">
                     <i class="fa-solid fa-location-arrow"></i> 네이버 길찾기
                 </a>
             `;
 
-            // [상세 정보 HTML 생성]
-            let branchHtml = '';
-            if (store.branch && store.branch.trim() !== '') {
-                branchHtml = `<div class="map-popup-branch">퀄리스포츠 ${store.branch}</div>`;
-            }
-
-            const addressHtml = `<div class="map-popup-row"><i class="fa-solid fa-location-dot"></i> ${store.address}</div>`;
-            const phoneHtml = store.phone ? `<div class="map-popup-row"><i class="fa-solid fa-phone"></i> <a href="tel:${store.phone}">${store.phone}</a></div>` : '';
-            const closedHtml = `<div class="map-popup-row"><i class="fa-regular fa-calendar-xmark"></i> 휴무: ${store.closed || '없음'}</div>`;
+            const addressHtml = `<div class="map-popup-row popup-mobile-hide"><i class="fa-solid fa-location-dot"></i> ${store.address}</div>`;
+            const phoneHtml = store.phone ? `<div class="map-popup-row popup-mobile-hide"><i class="fa-solid fa-phone"></i> <a href="tel:${store.phone}">${store.phone}</a></div>` : '';
+            const closedHtml = `<div class="map-popup-row popup-mobile-hide"><i class="fa-regular fa-calendar-xmark"></i> 휴무: ${store.closed || '없음'}</div>`;
 
             const popupContent = `
                 <div class="map-popup-inner">
@@ -258,20 +253,25 @@ function updateMarkers(stores) {
                     </div>
                 </div>
             `;
+
+            // [수정] 모바일에서도 팝업을 다시 노출하되, CSS로 정보를 최적화하여 잘림 방지
             marker.bindPopup(popupContent);
 
             marker.on('click', () => {
                 const isMobile = window.innerWidth <= 900;
-                if (!isMobile) {
-                    highlightListItem(store.name);
-                }
-                showSelectedStore(store.name);
-                focusMarker(marker, pos, store);
-            });
 
-            // 초기 팝업 바인딩
-            marker.bindPopup(popupContent, {
-                offset: [0, -20]
+                if (isMobile) {
+                    // 모바일: 팝업도 띄우고 정보 바도 노출
+                    highlightListItem(store.name, false);
+                    showSelectedStore(store.name);
+                    setActivePin(marker);
+                    focusMarker(marker, pos, store); // 팝업 노출을 위해 추가
+                } else {
+                    // 데스크탑: 기존 동작 (팝업 + 리스트 강조 + 스크롤)
+                    highlightListItem(store.name, true);
+                    showSelectedStore(store.name);
+                    focusMarker(marker, pos, store);
+                }
             });
 
             store.markerRef = marker;
@@ -567,10 +567,11 @@ function clearSelection() {
     document.getElementById('selectedStoreBar').style.display = 'none';
     document.querySelectorAll('.store-card').forEach(c => c.classList.remove('active-card'));
     if (map) map.closePopup();
+    setActivePin(null); // [추가] 선택 해제 시 핀 강조 초기화
     scrollToListTop();
 }
 
-function highlightListItem(storeName) {
+function highlightListItem(storeName, shouldScroll = true) {
     const cards = document.querySelectorAll('.store-card');
     let targetCard = null;
     cards.forEach(card => {
@@ -581,7 +582,17 @@ function highlightListItem(storeName) {
             card.classList.remove('active-card');
         }
     });
-    if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (targetCard && shouldScroll) {
+        const isMobile = window.innerWidth <= 900;
+        if (isMobile) {
+            // 모바일: 최상단으로 스크롤 (start)
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // 데스크탑: 중앙으로 스크롤 (center)
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 }
 
 function scrollTabs(direction) {
@@ -619,41 +630,49 @@ function clearSearch() {
 
 function filterData() { toggleClearBtn(); applyFilter(); }
 
-// [신규] 마커 및 팝업 포커싱 (데스크탑: 팝업 중앙, 핀 좌측)
+// [신규] 마커 및 팝업 포커싱 (모바일/데스크탑 모두 핀 좌우 정렬)
 function focusMarker(marker, pos, storeData) {
     const isMobile = window.innerWidth <= 900;
     const zoomLevel = 16;
-    const content = marker.getPopup().getContent();
 
-    // 맵의 중심으로부터 핀이 어느 쪽에 있는지에 따라 꼬리 방향 결정 (데스크탑)
+    // 맵의 중심으로부터 핀이 어느 쪽에 있는지에 따라 꼬리 방향 결정
     const mapCenter = map.getCenter();
     const isLeftOfCenter = pos.lng < mapCenter.lng;
-    
-    // 기본값은 핀이 왼쪽에 있고 팝업이 중앙(오른쪽)에 오는 형태
-    let offsetPixels = isMobile ? 80 : 220;
-    let popupClass = 'side-popup popup-left-tail';
-    let moveDirection = 1; // 중심을 오른쪽으로 밀면 핀은 왼쪽으로 감
 
-    // 핀이 화면 오른쪽에 있다면 팝업을 왼쪽에 배치
-    if (!isMobile && !isLeftOfCenter) {
+    // 기본값은 핀이 왼쪽에 있고 팝업이 오른쪽에 오는 형태 (데스크탑 오프셋)
+    let offsetPixels = isMobile ? 0 : 220; // 모바일은 팝업 안 쓰므로 오프셋 무의미
+    let popupClass = 'side-popup popup-left-tail';
+    let moveDirection = 1;
+
+    if (!isLeftOfCenter) {
         popupClass = 'side-popup popup-right-tail';
         moveDirection = -1;
     }
 
+    // 모바일에서는 단순히 핀이 중앙 근처에 오도록 처리 (오프셋 없이)
     const point = map.project([pos.lat, pos.lng], zoomLevel);
-    const newPoint = point.add([offsetPixels * moveDirection, 0]);
+    const offsetValue = isMobile ? 0 : offsetPixels * moveDirection;
+    const newPoint = point.add([offsetValue, 0]);
     const newCenter = map.unproject(newPoint, zoomLevel);
 
     map.flyTo(newCenter, zoomLevel, { animate: true, duration: 1 });
 
-    marker.bindPopup(content, {
-        offset: [offsetPixels * moveDirection, 0],
-        className: popupClass,
-        closeOnClick: isMobile // 모바일은 클릭시 닫히게
-    });
+    // 데스크탑에서만 팝업 바인딩 및 오픈
+    if (!isMobile) {
+        const content = marker.getPopup().getContent();
+        marker.bindPopup(content, {
+            offset: [offsetPixels * moveDirection, 0],
+            className: popupClass,
+            closeOnClick: false
+        });
 
+        setTimeout(() => {
+            marker.openPopup();
+        }, 450);
+    }
+
+    // 핀 강조는 모바일/데스크탑 모두 적용
     setTimeout(() => {
-        marker.openPopup();
         setActivePin(marker);
     }, 450);
 }
@@ -666,7 +685,7 @@ function showMobileModal(store) {
 
     const body = document.getElementById('mobileModalBody');
     const pos = getStoreLatLng(store);
-    
+
     // 모달 내용에 미니 지도 영역 추가
     let miniMapHtml = `<div id="mobileMiniMap"></div>`;
 
@@ -689,6 +708,7 @@ function showMobileModal(store) {
         </a>
     `;
 
+    // 모바일 모달은 모든 정보 표시 (원래대로)
     body.innerHTML = `
         <div class="map-popup-inner" style="padding:0;">
             ${miniMapHtml}
@@ -727,7 +747,7 @@ function showMobileModal(store) {
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mobileMiniMap);
-        
+
         const miniIcon = L.divIcon({
             className: 'custom-pin',
             html: `<i class="fa-solid fa-location-dot" style="color:#ff3b30; font-size:30px;"></i>`,
@@ -735,7 +755,7 @@ function showMobileModal(store) {
             iconAnchor: [15, 30]
         });
         L.marker([pos.lat, pos.lng], { icon: miniIcon }).addTo(mobileMiniMap);
-        
+
         // 맵 클릭 시 네이버 지도로 연결되게 설정
         mobileMiniMap.on('click', () => {
             window.open(`https://map.naver.com/v5/search/${encodeURIComponent(store.address)}`, '_blank');

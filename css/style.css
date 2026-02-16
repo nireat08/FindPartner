@@ -345,46 +345,113 @@ header {
 }
 
 
-/* [선택된 매장 표시줄] */
+/* [선택된 매장 표시줄 - 전역/데스크탑 기본] */
 .selected-info-bar {
-    background-color: #e3f2fd;
-    color: #0d47a1;
-    padding: 10px 15px;
-    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: var(--quali-blue);
+    padding: 12px 16px;
+    border-radius: var(--radius-m);
     font-size: 0.95rem;
     display: none;
     align-items: center;
     justify-content: space-between;
-    border: 1px solid #bbdefb;
-    animation: fadeIn 0.3s ease-in-out;
+    border: 1px solid var(--divider);
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-card);
 }
 
 .selected-info-bar strong {
     margin-left: 5px;
+    font-weight: 700;
 }
 
-.selected-info-bar i {
-    margin-right: 5px;
-    color: var(--brand-blue);
+.selected-info-bar i.fa-check-circle {
+    margin-right: 8px;
+    color: var(--quali-green);
 }
 
 .btn-clear-select {
-    background: none;
+    background: rgba(0, 0, 0, 0.05);
     border: none;
     cursor: pointer;
     color: #999;
-    font-size: 1.1rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-clear-select:hover {
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--system-red);
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(-5px);
+        transform: translateY(-10px);
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* 모바일 전용 플로팅 바 디자인 (하단 고정) */
+@media (max-width: 900px) {
+    .selected-info-bar {
+        position: fixed;
+        bottom: 30px;
+        left: 20px;
+        right: 20px;
+        z-index: 1002;
+        /* 지도 컨트롤보다 위에 */
+        margin-bottom: 0;
+        padding: 16px 20px;
+        background: var(--quali-dark);
+        color: white;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        display: none;
+        /* JS로 제어 */
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .selected-info-bar i.fa-check-circle {
+        color: var(--quali-green);
+    }
+
+    .selected-info-bar strong {
+        color: var(--quali-green);
+    }
+
+    .btn-clear-select {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    /* 하단 이동 버튼 위치 조정 (바와 겹치지 않게) */
+    .btn-top.show {
+        bottom: 100px;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -655,27 +722,83 @@ header {
 /* 모바일 지도 내 팝업 크기 조정 및 버그 수정 */
 @media (max-width: 900px) {
     .leaflet-popup-content {
-        width: 220px !important;
-        max-height: 250px; /* 너무 크면 가려지므로 제한 */
-        overflow-y: auto;
+        width: 200px !important;
+        /* 다시 축소하여 콤팩트하게 */
+        max-height: 280px;
+        overflow: hidden !important;
+        /* 스크롤바 제거 */
     }
+
+    /* 모바일에서 좁을 경우 정보 숨김 */
+    .popup-mobile-hide {
+        display: none !important;
+    }
+
+    /* 모바일 팝업 내 버튼 및 폰트 크기 축소 */
+    .map-popup-title {
+        font-size: 15px !important;
+    }
+
+    .map-popup-branch {
+        font-size: 12px !important;
+    }
+
+    .map-popup-btn,
+    .btn-map-link {
+        padding: 6px 10px !important;
+        /* 다시 축소 */
+        font-size: 12px !important;
+        min-height: auto !important;
+        margin-top: 2px !important;
+    }
+
+    .map-popup-inner {
+        padding: 10px 15px !important;
+        /* 패딩 축소 */
+        gap: 4px !important;
+        /* 간격 축소 */
+    }
+
     .leaflet-popup-inner {
-        padding: 12px; /* 패딩 축소 */
+        padding: 8px;
+        /* 패딩 더 축소 */
     }
+
     .map-popup-header {
+        margin-bottom: 4px;
+        padding-bottom: 6px;
+    }
+
+    .map-popup-body {
         margin-bottom: 6px;
     }
-    .map-popup-body {
-        margin-bottom: 8px;
+
+    .map-popup-title {
+        font-size: 14px;
+        /* 폰트 크기 축소 */
+    }
+
+    .map-popup-branch {
+        font-size: 12px;
+    }
+
+    .map-popup-row {
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+
+    .map-popup-buttons {
+        gap: 4px;
+    }
+
+    .map-popup-btn,
+    .btn-map-link {
+        padding: 8px 0;
+        font-size: 13px;
     }
 }
 
-/* 모바일 지도 내 팝업 크기 조정 */
-@media (max-width: 900px) {
-    .leaflet-popup-content {
-        width: 220px !important;
-    }
-}
+
 
 .leaflet-popup-tip {
     background: rgba(255, 255, 255, 0.95);
@@ -683,7 +806,8 @@ header {
 
 /* [신규] 사이드 팝업 스타일 (중앙 배치용) */
 .side-popup .leaflet-popup-tip-container {
-    display: none; /* 기본 하단 꼬리 숨김 */
+    display: none;
+    /* 기본 하단 꼬리 숨김 */
 }
 
 .side-popup .leaflet-popup-content-wrapper::before {
@@ -716,6 +840,7 @@ header {
 body.dark-mode .popup-left-tail .leaflet-popup-content-wrapper::before {
     border-right-color: #1e1e1e;
 }
+
 body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
     border-left-color: #1e1e1e;
 }
@@ -731,7 +856,8 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
     backdrop-filter: blur(4px);
     z-index: 2000;
     display: none;
-    align-items: flex-end; /* 하단에서 올라오는 느낌 */
+    align-items: flex-end;
+    /* 하단에서 올라오는 느낌 */
     justify-content: center;
 }
 
@@ -747,27 +873,23 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
     transition: transform 0.3s ease-out;
     max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    /* 가로 스크롤 방지 */
 }
 
 /* 모바일 모달 내 미니 지도 */
 #mobileMiniMap {
     width: 100%;
     height: 180px;
+    /* 원래대로 */
     border-radius: 12px;
     margin-bottom: 16px;
+    /* 원래대로 */
     background: #eee;
     z-index: 1;
 }
 
-/* 모바일 모달 내 미니 지도 */
-#mobileMiniMap {
-    width: 100%;
-    height: 180px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    background: #eee;
-    z-index: 1;
-}
+
 
 .mobile-modal-overlay.show {
     display: flex;
@@ -816,12 +938,14 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
 
 /* Custom Popup Content */
 .map-popup-inner {
-    padding: 20px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 8px;
     text-align: center;
-    /* Center align by default */
+    /* 중앙 정렬로 통일 */
+    overflow: hidden !important;
+    /* 내부 스크롤 방지 */
 }
 
 .map-popup-title {
@@ -856,8 +980,9 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
 
 /* [신규] 팝업 상세 스타일 */
 .map-popup-inner {
-    text-align: left;
-    min-width: 220px;
+    text-align: center;
+    /* 중앙 정렬로 변경 */
+    min-width: 200px;
 }
 
 .map-popup-header {
@@ -1062,8 +1187,11 @@ body.dark-mode .map-popup-header {
     header {
         position: sticky;
         top: 0;
-        z-index: 1100; /* 컨트롤 영역보다 높게 */
-        padding: 0 12px 12px; /* 하단 여백 추가 */
+        z-index: 1100;
+        /* 컨트롤 영역보다 높게 */
+        padding: 12px;
+        padding-bottom: 16px;
+        /* 하단 여백 추가 */
     }
 
     .mobile-only-header-controls .control-area {
@@ -1071,13 +1199,37 @@ body.dark-mode .map-popup-header {
         background: transparent;
         backdrop-filter: none;
         border-bottom: none;
-        gap: 12px;
+        gap: 10px;
         position: static;
     }
 
     .mobile-only-header-controls {
         display: block;
-        margin-top: 4px;
+        margin-top: 8px;
+    }
+
+    /* 모바일 헤더 내 검색창 스타일 */
+    .mobile-only-header-controls .search-input-row {
+        margin-bottom: 0;
+    }
+
+    /* 모바일 헤더 내 지도 제어 버튼 */
+    .mobile-only-header-controls .map-controls-row {
+        padding: 0;
+        background: transparent;
+        border-bottom: none;
+        margin-top: 0;
+    }
+
+    /* 모바일 헤더 내 필터 버튼 */
+    .mobile-only-header-controls .filter-buttons-row {
+        padding-bottom: 0;
+    }
+
+    /* 모바일 헤더 내 탭 */
+    .mobile-only-header-controls .tabs-container {
+        margin-top: 0;
+        padding-bottom: 0;
     }
 
     /* 다크모드 헤더 대응 */
@@ -1283,7 +1435,8 @@ body.dark-mode .filter-btn.onecare-filter.active {
 
 body.dark-mode .filter-btn.testride-filter.active {
     background-color: #85e05d;
-    color: #121212; /* 밝은 배경에는 어두운 텍스트 */
+    color: #121212;
+    /* 밝은 배경에는 어두운 텍스트 */
 }
 
 body.dark-mode .filter-btn.testride-filter.active i {
@@ -1395,7 +1548,8 @@ body.dark-mode .control-btn:hover {
 }
 
 body.dark-mode .control-btn.active {
-    background: #4a90e2; /* 다크모드에서 더 잘 보이는 밝은 블루 */
+    background: #4a90e2;
+    /* 다크모드에서 더 잘 보이는 밝은 블루 */
     border-color: #4a90e2;
     color: white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
