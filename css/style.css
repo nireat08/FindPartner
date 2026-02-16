@@ -793,8 +793,12 @@ header {
 
     .map-popup-btn,
     .btn-map-link {
-        padding: 8px 0;
-        font-size: 13px;
+        padding: 10px 0 !important;
+        /* 크기 키위기 */
+        font-size: 14.5px !important;
+        min-height: 44px !important;
+        /* 터치 영역 확보 */
+        margin-top: 4px !important;
     }
 }
 
@@ -1055,11 +1059,12 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
     text-decoration: none;
     border-radius: 8px;
     /* 둥글게 */
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 600;
     transition: all 0.2s;
     border: 1px solid #e9ecef;
     margin-bottom: 6px;
+    min-height: 44px;
 }
 
 .map-popup-btn:hover {
@@ -1080,11 +1085,12 @@ body.dark-mode .popup-right-tail .leaflet-popup-content-wrapper::before {
     text-decoration: none;
     border-radius: 8px;
     /* 둥글게 */
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 700;
     transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(3, 199, 90, 0.2);
     cursor: pointer;
+    min-height: 44px;
 }
 
 .btn-map-link:hover {
@@ -1441,6 +1447,19 @@ body.dark-mode .filter-btn.testride-filter.active {
 
 body.dark-mode .filter-btn.testride-filter.active i {
     color: #121212;
+}
+
+/* 다크모드 하이퍼링크 색상 최적화 */
+body.dark-mode a:not(.control-btn):not(.tab-btn),
+body.dark-mode .phone-link,
+body.dark-mode .map-popup-row a {
+    color: #85e05d;
+    /* 브랜드 그린 계열로 변경하여 눈의 피로도 감소 */
+}
+
+body.dark-mode a:hover {
+    color: #a2f07d;
+    text-decoration: underline;
 }
 
 body.dark-mode .leaflet-popup-content-wrapper,

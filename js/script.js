@@ -649,10 +649,13 @@ function focusMarker(marker, pos, storeData) {
         moveDirection = -1;
     }
 
-    // 모바일에서는 단순히 핀이 중앙 근처에 오도록 처리 (오프셋 없이)
+    // 모바일에서는 핀이 지도의 하단 쪽에 오도록 오프셋을 주어 팝업이 잘리지 않게 처리
     const point = map.project([pos.lat, pos.lng], zoomLevel);
-    const offsetValue = isMobile ? 0 : offsetPixels * moveDirection;
-    const newPoint = point.add([offsetValue, 0]);
+
+    let offsetValueX = isMobile ? 0 : offsetPixels * moveDirection;
+    let offsetValueY = isMobile ? -100 : 0; // 모바일에서 지도를 위로 밀어 핀을 아래로 내림
+
+    const newPoint = point.add([offsetValueX, offsetValueY]);
     const newCenter = map.unproject(newPoint, zoomLevel);
 
     map.flyTo(newCenter, zoomLevel, { animate: true, duration: 1 });
