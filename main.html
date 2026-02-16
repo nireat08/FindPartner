@@ -25,21 +25,24 @@
 
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
 
-    <header>
-        <div class="brand-title">
-            <i class="fa-solid fa-map-location-dot"></i>
-            전국 대리점 안내
+    <header id="mainHeader">
+        <div class="header-top-row">
+            <div class="brand-title">
+                <i class="fa-solid fa-map-location-dot"></i>
+                전국 대리점 안내
+            </div>
+            <div class="header-info">가까운 공식 대리점을 검색해보세요</div>
         </div>
-        <div class="header-info">가까운 공식 대리점을 검색해보세요</div>
 
-
+        <!-- 모바일에서 헤더로 이동될 컨트롤 영역 (데스크탑은 aside 내부에 위치) -->
+        <div id="mobileControlPortal" class="mobile-only-header-controls"></div>
     </header>
 
     <div class="main-container">
         <!-- 왼쪽 패널 -->
         <aside class="list-panel">
 
-            <div class="control-area">
+            <div class="control-area" id="controlArea">
                 <!-- 1단: 검색창 -->
                 <div class="search-input-row">
                     <!-- [수정] autocomplete="off" 속성 추가하여 브라우저 자동완성 차단 -->
@@ -137,6 +140,14 @@
         <main class="map-panel">
             <div id="map"></div>
         </main>
+    </div>
+
+    <!-- [신규] 모바일 상세 모달 -->
+    <div id="mobileModalOverlay" class="mobile-modal-overlay" onclick="closeMobileModal(event)">
+        <div class="mobile-modal-container" onclick="event.stopPropagation()">
+            <button class="btn-close-modal" onclick="closeMobileModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div id="mobileModalBody"></div>
+        </div>
     </div>
 
     <!-- 외부 라이브러리 -->

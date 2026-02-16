@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initMap();
     fetchData();
     requestInitialLocation(); // [신규] 페이지 진입 시 위치 권한 요청
+    handleResponsiveLayout(); // [신규] 화면 크기에 따른 레이아웃 처리
 
     const listEl = document.getElementById('listContent');
     listEl.addEventListener('scroll', () => {
@@ -44,7 +45,26 @@ document.addEventListener("DOMContentLoaded", function () {
             else btn.classList.remove('show');
         }
     });
+    window.addEventListener('resize', handleResponsiveLayout);
 });
+
+// [신규] 모바일 버전에서 컨트롤 영역을 헤더로 이동시키는 포털 기능
+function handleResponsiveLayout() {
+    const controlArea = document.getElementById('controlArea');
+    const mobilePortal = document.getElementById('mobileControlPortal');
+    const aside = document.querySelector('.list-panel');
+    const isMobile = window.innerWidth <= 900;
+
+    if (isMobile) {
+        if (controlArea.parentElement !== mobilePortal) {
+            mobilePortal.appendChild(controlArea);
+        }
+    } else {
+        if (controlArea.parentElement !== aside) {
+            aside.insertBefore(controlArea, aside.firstChild);
+        }
+    }
+}
 
 function initMap() {
     // [변경] 대한민국 영역 제한 (독도 포함, 일본/북한 최소화) - OSM 복구 시에도 유지
@@ -241,17 +261,17 @@ function updateMarkers(stores) {
             marker.bindPopup(popupContent);
 
             marker.on('click', () => {
-                highlightListItem(store.name);
+                const isMobile = window.innerWidth <= 900;
+                if (!isMobile) {
+                    highlightListItem(store.name);
+                }
                 showSelectedStore(store.name);
-                setActivePin(marker);
-
-                // [신규] 맵 중앙 정렬 (팝업이 잘리지 않도록)
-                map.flyTo([pos.lat, pos.lng], 16, { animate: true, duration: 1 });
+                focusMarker(marker, pos, store);
             });
 
-            // [신규] 팝업 위치 오프셋 조정 (핀과 여백 두기)
+            // 초기 팝업 바인딩
             marker.bindPopup(popupContent, {
-                offset: [0, -20] // 위로 20px 올림
+                offset: [0, -20]
             });
 
             store.markerRef = marker;
@@ -484,23 +504,15 @@ function renderList(data) {
             showSelectedStore(store.name);
 
             if (map && targetPos) {
-                // map.flyTo -> markerClusterGroup zoom handle
-                // 클러스터 내부 마커일 경우 펼치기
                 if (isClusteringEnabled && markerClusterGroup) {
                     markerClusterGroup.zoomToShowLayer(store.markerRef, () => {
-                        store.markerRef.openPopup();
-                        setActivePin(store.markerRef);
+                        // [수정] 리스트 클릭 시에만 모달 띄우도록
+                        showMobileModal(store);
+                        focusMarker(store.markerRef, targetPos, store);
                     });
                 } else {
-                    map.flyTo([targetPos.lat, targetPos.lng], 16, { duration: 1.5 });
-                    if (store.markerRef) {
-                        store.markerRef.openPopup();
-                        setActivePin(store.markerRef);
-                    }
-                }
-
-                if (window.innerWidth <= 900) {
-                    document.querySelector('.map-panel').scrollIntoView({ behavior: 'smooth' });
+                    showMobileModal(store);
+                    focusMarker(store.markerRef, targetPos, store);
                 }
             }
         };
@@ -606,6 +618,136 @@ function clearSearch() {
 }
 
 function filterData() { toggleClearBtn(); applyFilter(); }
+
+// [신규] 마커 및 팝업 포커싱 (데스크탑: 팝업 중앙, 핀 좌측)
+function focusMarker(marker, pos, storeData) {
+    const isMobile = window.innerWidth <= 900;
+    const zoomLevel = 16;
+    const content = marker.getPopup().getContent();
+
+    // 맵의 중심으로부터 핀이 어느 쪽에 있는지에 따라 꼬리 방향 결정 (데스크탑)
+    const mapCenter = map.getCenter();
+    const isLeftOfCenter = pos.lng < mapCenter.lng;
+    
+    // 기본값은 핀이 왼쪽에 있고 팝업이 중앙(오른쪽)에 오는 형태
+    let offsetPixels = isMobile ? 80 : 220;
+    let popupClass = 'side-popup popup-left-tail';
+    let moveDirection = 1; // 중심을 오른쪽으로 밀면 핀은 왼쪽으로 감
+
+    // 핀이 화면 오른쪽에 있다면 팝업을 왼쪽에 배치
+    if (!isMobile && !isLeftOfCenter) {
+        popupClass = 'side-popup popup-right-tail';
+        moveDirection = -1;
+    }
+
+    const point = map.project([pos.lat, pos.lng], zoomLevel);
+    const newPoint = point.add([offsetPixels * moveDirection, 0]);
+    const newCenter = map.unproject(newPoint, zoomLevel);
+
+    map.flyTo(newCenter, zoomLevel, { animate: true, duration: 1 });
+
+    marker.bindPopup(content, {
+        offset: [offsetPixels * moveDirection, 0],
+        className: popupClass,
+        closeOnClick: isMobile // 모바일은 클릭시 닫히게
+    });
+
+    setTimeout(() => {
+        marker.openPopup();
+        setActivePin(marker);
+    }, 450);
+}
+
+let mobileMiniMap = null;
+
+// [신규] 모바일 전용 상세 모달 표시
+function showMobileModal(store) {
+    if (window.innerWidth > 900) return; // 데스크탑은 무시
+
+    const body = document.getElementById('mobileModalBody');
+    const pos = getStoreLatLng(store);
+    
+    // 모달 내용에 미니 지도 영역 추가
+    let miniMapHtml = `<div id="mobileMiniMap"></div>`;
+
+    let branchHtml = '';
+    if (store.branch && store.branch.trim() !== '') {
+        branchHtml = `<div class="map-popup-branch" style="margin-bottom:10px;">퀄리스포츠 ${store.branch}</div>`;
+    }
+
+    let popupLinkBtn = '';
+    if (store.link && store.link.trim() !== '' && store.link !== '#') {
+        popupLinkBtn += `
+            <a href="${store.link}" target="_blank" class="map-popup-btn">
+                네이버 지도로 보기
+            </a>
+        `;
+    }
+    popupLinkBtn += `
+        <a href="#" onclick="openNaverNavi(${pos.lat}, ${pos.lng}, '${store.name}'); return false;" class="btn-map-link">
+            <i class="fa-solid fa-location-arrow"></i> 네이버 길찾기
+        </a>
+    `;
+
+    body.innerHTML = `
+        <div class="map-popup-inner" style="padding:0;">
+            ${miniMapHtml}
+            <div class="map-popup-header">
+                <h4 class="map-popup-title" style="font-size:20px;">${store.name}</h4>
+                ${branchHtml}
+            </div>
+            <div class="map-popup-body" style="font-size:15px; margin: 15px 0;">
+                <div class="map-popup-row"><i class="fa-solid fa-location-dot"></i> ${store.address}</div>
+                <div class="map-popup-row"><i class="fa-solid fa-phone"></i> <a href="tel:${store.phone}">${store.phone || '-'}</a></div>
+                <div class="map-popup-row"><i class="fa-regular fa-calendar-xmark"></i> 휴무: ${store.closed || '없음'}</div>
+            </div>
+            <div class="map-popup-buttons" style="margin-top:20px;">
+                ${popupLinkBtn}
+            </div>
+        </div>
+    `;
+
+    const overlay = document.getElementById('mobileModalOverlay');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    // 모달 내 미니 지도 초기화 (비동기 처리)
+    setTimeout(() => {
+        if (mobileMiniMap) {
+            mobileMiniMap.remove();
+        }
+        mobileMiniMap = L.map('mobileMiniMap', {
+            center: [pos.lat, pos.lng],
+            zoom: 15,
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mobileMiniMap);
+        
+        const miniIcon = L.divIcon({
+            className: 'custom-pin',
+            html: `<i class="fa-solid fa-location-dot" style="color:#ff3b30; font-size:30px;"></i>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
+        });
+        L.marker([pos.lat, pos.lng], { icon: miniIcon }).addTo(mobileMiniMap);
+        
+        // 맵 클릭 시 네이버 지도로 연결되게 설정
+        mobileMiniMap.on('click', () => {
+            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(store.address)}`, '_blank');
+        });
+    }, 200);
+}
+
+function closeMobileModal() {
+    const overlay = document.getElementById('mobileModalOverlay');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
 
 function applyFilter() {
     const keyword = document.getElementById("searchInput").value.toUpperCase().trim();
