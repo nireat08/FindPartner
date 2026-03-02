@@ -1,17 +1,11 @@
 export default async function handler(req, res) {
   // Vercel 환경 변수에서 숨겨둔 주소를 가져옵니다.
   const GAS_URL = process.env.GAS_URL;
-  // (선택) 이번 프로젝트 GAS에도 토큰 검사를 넣으셨다면 사용하고, 없다면 지우셔도 무방합니다.
-  const API_TOKEN = process.env.API_TOKEN; 
-
+ 
   try {
     const url = new URL(GAS_URL);
     
-    // 토큰이 환경변수에 세팅되어 있다면 안전하게 쿼리스트링으로 붙여줍니다.
-    if (API_TOKEN) {
-      url.searchParams.append('token', API_TOKEN);
-    }
-
+    
     // 프론트엔드에서 보낸 쿼리스트링(검색어 등)이 있다면 그대로 GAS로 전달
     if (req.method === 'GET') {
       for (const [key, value] of Object.entries(req.query)) {
