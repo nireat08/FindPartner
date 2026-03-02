@@ -14,7 +14,7 @@ document.addEventListener('keydown', function (e) {
     if (e.ctrlKey && e.keyCode === 80) { e.preventDefault(); return false; }
 });
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz6Olo7dxvy60Hvn7th15S6iiYBOfj8TEF7mcZSY7vPUll5-hNWTevdzT4-KXv9g7VA/exec";
+const GAS_URL = "/api/gas-proxy";
 
 let map;
 let markers = []; // This will now act as a reference if needed, but mainly use cluster
@@ -823,7 +823,3 @@ function scrollToListTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
-
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'F12' || e.keyCode === 123) return false;
-});

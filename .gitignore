@@ -4,3 +4,7 @@
 # 운영체제 임시 파일 무시
 .DS_Store
 Thumbs.db
+
+# 환경 변수 파일 무시
+.env
+.vercel
