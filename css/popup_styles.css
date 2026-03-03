@@ -12,10 +12,11 @@
 
 .map-popup-title {
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 800;
     margin: 0;
     color: #333;
     line-height: 1.3;
+    letter-spacing: -0.02em;
 }
 
 .map-popup-branch {
