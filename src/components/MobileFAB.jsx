@@ -35,6 +35,9 @@ export default function MobileFAB() {
                 <a href={CONFIG.EXTERNAL_SERVICES.REGIST_CENTER} target="_blank" rel="noreferrer" className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-xl shadow-lg font-semibold text-sm min-w-[160px] pointer-events-auto transition-transform active:scale-95">
                     제품등록센터
                 </a>
+                <a href="about:blank" target="_blank" rel="noreferrer" className="flex items-center justify-center px-4 py-3 bg-white text-gray-800 border border-gray-200 rounded-xl shadow-lg font-semibold text-sm min-w-[160px] pointer-events-auto transition-transform active:scale-95">
+                    제품가이드
+                </a>
             </div>
 
             {/* Toggle Button */}

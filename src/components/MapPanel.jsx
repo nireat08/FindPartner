@@ -380,6 +380,15 @@ export default function MapPanel() {
                         >
                             <i className="fa-solid fa-file-signature"></i>
                         </a>
+                        <a 
+                            href="about:blank"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-10 h-10 bg-white text-gray-800 border border-gray-200 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95"
+                            title="제품가이드"
+                        >
+                            <i className="fa-solid fa-book"></i>
+                        </a>
                     </>
                 )}
             </div>
